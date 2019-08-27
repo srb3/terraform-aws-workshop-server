@@ -5,11 +5,21 @@ resource "random_id" "hash" {
 locals {
   prefix    = "${lookup(var.tags, "prefix", "changeme")}-${random_id.hash.hex}"
   bootstrap = var.templatefile != "" ? var.templatefile : templatefile("${path.module}/templates/bootstrap.sh", {
-    create_user      = var.create_user,
-    user_name        = var.user_name,
-    user_pass        = var.user_pass,
-    user_public_key  = var.user_public_key != "" ? file(var.user_public_key) : var.user_public_key,
-    system_type      = var.system_type
+    create_user               = var.create_user,
+    user_name                 = var.user_name,
+    user_pass                 = var.user_pass,
+    user_public_key           = var.user_public_key != "" ? file(var.user_public_key) : var.user_public_key,
+    system_type               = var.system_type,
+    tmp_path                  = var.tmp_path,
+    chef_product_install_url  = var.chef_product_install_url,
+    hab_install_url           = var.hab_install_url,
+    workstation_chef          = var.workstation_chef,
+    chef_product_name         = var.chef_product_name,
+    chef_product_version      = var.chef_product_version,
+    workstation_hab           = var.workstation_hab,
+    hab_version               = var.hab_version,
+    install_workstation_tools = var.install_workstation_tools,
+    choco_install_url         = var.choco_install_url
   })
 }
 
@@ -58,7 +68,6 @@ module "server" {
 resource "random_string" "guacamole_access_password" {
   length           = 8
   special          = true
-  override_special = "/@\" "
 }
 
 ### these are outputs created in case you want to plug guacamole-client

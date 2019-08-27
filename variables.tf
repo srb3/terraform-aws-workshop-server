@@ -6,6 +6,68 @@ variable "templatefile" {
   default     = ""
 }
 
+########### workstation settings #################
+
+variable "tmp_path" {
+  description = "The location of the temp path to use for downloading installers and executing scripts"
+  type        = string
+  default     = "/var/tmp/workstation_install"
+}
+
+variable "chef_product_install_url" {
+  description = "The url to use for installing chef products"
+  type        = string
+  default     = "https://www.chef.io/chef/install.sh"
+}
+
+variable "hab_install_url" {
+  description = "The url to use for installing chef habitat"
+  type        = string
+  default     = "https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh"
+}
+
+variable "choco_install_url" {
+  description = "The url to use for installing choco"
+  type        = string
+  default     = "https://chocolatey.org/install.ps1"
+}
+
+variable "install_workstation_tools" {
+  description = "Should we install general workstation tools"
+  type        = bool
+  default     = false
+}
+
+variable "workstation_hab" {
+  description = "Should we install the habitat application"
+  type        = bool
+  default     = false
+}
+
+variable "workstation_chef" {
+  description = "Should we install chef related products (chef, chefdk, chef-workstation, inspec)"
+  type        = bool
+  default     = false
+}
+
+variable "chef_product_name" {
+  description = "The name of the chef product to install (chef-workstion, chefdk, inspec)"
+  type        = string
+  default     = "chef-workstation"
+}
+
+variable "chef_product_version" {
+  description = "The version of the chef product to install"
+  type        = string
+  default     = "latest"
+}
+
+variable "hab_version" {
+  description = "The version of the chef habitat to install"
+  type        = string
+  default     = "latest"
+}
+
 ########### connection settings ##################
 
 variable "user_name" {

@@ -45,3 +45,13 @@ module "aws_instances_ceate" {
 |sec_grp_egress_rules|A list of security group rules to create taken from the rules data structure of https://github.com/terraform-aws-modules/terraform-aws-security-group|list|["all-all"]|no|
 |sec_grp_ingress_cidr_blocks|A list of cidr's to apply the ingress rules to|list|["0.0.0.0/0"]|no|
 |sec_grp_ingress_with_cidr_blocks|A list of custom security group rules and cidr's to apply the rules to|list|[]|no|
+|tmp_path|The location of the temp path to use for downloading installers and executing scripts (linux only)|string|/var/tmp/workstation_install|no|
+|chef_product_install_url|The url to use for installing chef products|string|https://www.chef.io/chef/install.sh|no|
+|hab_install_url|The url to use for installing chef habitat|string|https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh|no|
+|choco_install_url|The url to use for installing choco|string|https://chocolatey.org/install.ps1|no|
+|install_workstation_tools|Should we install general workstation tools|bool|false|no|
+|workstation_hab|Should we install the habitat application|bool|false|no|
+|workstation_chef|Should we install chef related products (chef, chefdk, chef-workstation, inspec)|bool|false|no|
+|chef_product_name|The name of the chef product to install (chef-workstion, chefdk, inspec, chef)|string|chef-workstation|no|
+|chef_product_version|The version of the chef product to install|string|latest|no|
+|hab_version|The version of the chef habitat to install|string|latest|no|

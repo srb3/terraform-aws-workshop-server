@@ -2,6 +2,55 @@
 %{ if system_type == "linux" }
 exec > /tmp/terraform_bootstrap_script.log 2>&1
 
+function set_tmp_path() {
+  if [[ ! -d ${tmp_path} ]]; then
+    mkdir -p ${tmp_path}
+  fi
+}
+
+function install_chef() {
+  if ! hash curl; then
+    wget -O ${tmp_path}/install.sh ${chef_product_install_url}
+  else
+    curl -L -o ${tmp_path}/install.sh ${chef_product_install_url}
+  fi
+  bash ${tmp_path}/install.sh -P $${1} -v $${2}
+  case $${1} in
+    inspec)
+      echo "export PATH=\"$${PATH}:/opt/chef/bin:/opt/chef/embedded/bin\"" >> /root/.bash_profile
+      echo "export PATH=\"$${PATH}:/opt/chef/bin:/opt/chef/embedded/bin\"" >> /home/${user_name}/.bash_profile
+      ;;
+    chef-workstation)
+      echo "export PATH=\"$${PATH}:/opt/chef-workstation/bin:/opt/chef-workstation/embedded/bin:/opt/chef-workstation/gitbin/\"" >> /root/.bash_profile
+      echo "export PATH=\"$${PATH}:/opt/chef-workstation/bin:/opt/chef-workstation/embedded/bin:/opt/chef-workstation/gitbin/\"" >> /home/${user_name}/.bash_profile
+      ;;
+    chefdk)
+      echo "export PATH=\"$${PATH}:/opt/chefdk/bin:/opt/chefdk/embedded/bin:/opt/chefdk/gitbin/\"" >> /root/.bash_profile
+      echo "export PATH=\"$${PATH}:/opt/chefdk/bin:/opt/chefdk/embedded/bin:/opt/chefdk/gitbin/\"" >> /home/${user_name}/.bash_profile
+      ;;
+    inspec)
+      echo "export PATH=\"$${PATH}:/opt/inspec/bin:/opt/inspec/embedded/bin\"" >> /root/.bash_profile
+      echo "export PATH=\"$${PATH}:/opt/inspec/bin:/opt/inspec/embedded/bin\"" >> /home/${user_name}/.bash_profile
+      ;;
+
+  esac
+}
+
+function install_hab() {
+  if ! hash curl; then
+    wget -O ${tmp_path}/install_hab.sh ${hab_install_url}
+  else
+    curl -L -o ${tmp_path}/install_hab.sh ${hab_install_url}
+  fi
+  if [[ "$${1}" == "latest" ]]; then
+    bash ${tmp_path}/install_hab.sh
+  else
+    bash ${tmp_path}/install_hab.sh -v $${1}
+  fi
+  hab license accept
+  su - ${user_name} -c 'hab license accept'
+}
+
 %{ if create_user }
 if sed 's/"//g' /etc/os-release |grep -e '^NAME=CentOS' -e '^NAME=Fedora' -e '^NAME=Red'; then
   useradd ${user_name}
@@ -9,6 +58,7 @@ if sed 's/"//g' /etc/os-release |grep -e '^NAME=CentOS' -e '^NAME=Fedora' -e '^N
   %{ if user_pass != "" }
   echo "${user_pass}" | passwd --stdin ${user_name}
   %{ endif }
+  yum install -y vim
 elif sed 's/"//g' /etc/os-release |grep -e '^NAME=Mint' -e '^NAME=Ubuntu' -e '^NAME=Debian'; then
   apt-get clean
   apt-get update
@@ -17,6 +67,7 @@ elif sed 's/"//g' /etc/os-release |grep -e '^NAME=Mint' -e '^NAME=Ubuntu' -e '^N
   %{ if user_pass != "" }
   echo "${user_pass}" | passwd --stdin ${user_name}
   %{ endif }
+  apt-get install -y vim
 elif sed 's/"//g' /etc/os-release |grep -e '^NAME=SLES'; then
   if ! grep $(hostname) /etc/hosts; then
     echo "127.0.0.1 $(hostname)" >> /etc/hosts
@@ -44,7 +95,20 @@ sed -i  's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd
 systemctl restart sshd
 %{ endif }
 %{ endif }
-%{ else }
+
+
+%{ if workstation_chef }
+  set_tmp_path
+  install_chef ${chef_product_name} ${chef_product_version}
+%{ endif }
+
+%{ if workstation_hab }
+  set_tmp_path
+  install_hab ${hab_version}
+%{ endif }
+
+%{ else }<powershell>
+Set-MpPreference -DisableRealtimeMonitoring $true
 %{ if create_user }
 %{ if user_name == "Administrator" || user_name == "administrator" }
 $MySecureString = ConvertTo-SecureString -String "${user_pass}" -AsPlainText -Force
@@ -70,5 +134,67 @@ netsh advfirewall firewall add rule name="WinRM 5986" protocol=TCP dir=in localp
 net stop winrm
 sc.exe config winrm start=auto
 net start winrm
+
+function install_choco {
+  if( -Not (Test-Path -Path "$env:ProgramData\Chocolatey")) {
+    Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('${choco_install_url}'))
+  }
+}
+
+function update_path {
+  Param
+  (
+    [Parameter(Mandatory=$true, Position=0)]
+    [string] $path_entry
+  )
+  $newpath = "$env:Path;$path_entry"
+  $oldpath = '$env:Path ='
+  Write-Output "$oldpath '$newpath'" | Out-File -FilePath 'C:\Users\${user_name}\Documents\WindowsPowerShell\profile.ps1'
+}
+
+%{ if install_workstation_tools }
+install_choco
+choco install git -y
+choco install googlechrome -y
+choco install vscode -y
+%{ endif }
+
+%{ if workstation_hab }
+install_choco
+  %{ if hab_version == "latest" }
+choco install habitat -y
+  %{ else }
+choco install habitat --version ${hab_version} -y
+  %{ endif }
+hab license accept
+%{ endif }
+
+%{ if workstation_chef }
+install_choco
+
+%{ if chef_product_version == "latest" }
+choco install ${chef_product_name} -y
+%{ else }
+choco install ${chef_product_name} --version ${chef_product_version} -y
+%{ endif }
+
+%{ if chef_product_name == "chef-workstation" }
+update_path 'C:\opscode\chef-workstation\bin;C:\opscode\chef-workstation\embedded\bin\'
+%{ endif }
+
+%{ if chef_product_name == "chef" }
+update_path 'C:\opscode\chef\bin;C:\opscode\chef\embedded\bin\'
+%{ endif }
+
+%{ if chef_product_name == "chefdk" }
+update_path 'C:\opscode\chefdk\bin\;C:\opscode\chefdk\embedded\bin\'
+%{ endif }
+
+%{ if chef_product_name == "inspec" }
+update_path 'C:\opscode\inspec\bin;C:\opscode\inspec\embedded\bin\'
+%{ endif }
+
+%{ endif }
+Set-MpPreference -DisableRealtimeMonitoring $false
 </powershell>
 %{ endif }
