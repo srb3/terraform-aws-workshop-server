@@ -8,6 +8,12 @@ variable "templatefile" {
 
 ########### workstation settings #################
 
+variable "populate_hosts" {
+  description = "Set an entry in /etc/hosts for equivilent to `echo \"$(hostname -I) $(hostname)\" >> /etc/hosts`"
+  type        = bool
+  default     = false
+}
+
 variable "tmp_path" {
   description = "The location of the temp path to use for downloading installers and executing scripts"
   type        = string
@@ -68,6 +74,12 @@ variable "hab_version" {
   default     = "latest"
 }
 
+variable "helper_files" {
+  description = "a json string of file names and there content to create on the target workstation"
+  type        = string
+  default     = "[]"
+}
+
 ########### connection settings ##################
 
 variable "user_name" {
@@ -108,7 +120,7 @@ variable "system_type" {
 
 variable "tags" {
   description = "A map of tags to pass through to the vpc, security group and instances"
-  type        = "map"
+  type        = map
   default     = {}
 }
 
@@ -117,6 +129,12 @@ variable "tags" {
 variable "key_name" {
   description = "The key name to use for the instance"
   type        = string
+}
+
+variable "get_password_data" {
+  description = "If true, wait for password data to become available and retrieve it"
+  type        = bool
+  default     = false
 }
 
 variable "server_image_name" {
@@ -155,6 +173,18 @@ variable "subnets" {
 variable "instance_name" {
   description = "A common name to append to all the instances created in this module"
   type        = string
+}
+
+variable "set_hostname" {
+  description = "Should we set the hostname to the instance name on linux systems"
+  type        = bool
+  default     = true
+}
+
+variable "ip_hostname" {
+  description = "Should we append the ip address to help make hostnames unique when creating a batch of linux servers"
+  type        = bool
+  default     = true
 }
 
 ########### vpc settings #########################

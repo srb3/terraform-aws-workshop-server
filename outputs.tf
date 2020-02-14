@@ -22,3 +22,13 @@ output "guacamole_connections" {
   description = "A list of client connection detials for consumption by the Guacamole module"
   value       = local.connections
 }
+
+output "password_data" {
+  description = "List of Base-64 encoded encrypted password data for the instance"
+  value       = module.server.password_data
+}
+
+output "hostname" {
+  description = "The hostname for each instance if the systems are linux and the set hostname bool is true "
+  value       = local.output_hostnames
+}

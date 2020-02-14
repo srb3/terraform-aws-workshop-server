@@ -4,6 +4,7 @@ resource "random_id" "hash" {
 
 locals {
   prefix    = "${lookup(var.tags, "prefix", "changeme")}-${random_id.hash.hex}"
+  hostname  = var.ip_hostname ? var.instance_name : "${local.prefix}-${var.instance_name}"
   bootstrap = var.templatefile != "" ? var.templatefile : templatefile("${path.module}/templates/bootstrap.sh", {
     create_user               = var.create_user,
     user_name                 = var.user_name,
@@ -19,13 +20,18 @@ locals {
     workstation_hab           = var.workstation_hab,
     hab_version               = var.hab_version,
     install_workstation_tools = var.install_workstation_tools,
-    choco_install_url         = var.choco_install_url
+    choco_install_url         = var.choco_install_url,
+    hostname                  = local.hostname
+    helper_files              = var.helper_files,
+    ip_hostname               = var.ip_hostname,
+    set_hostname              = var.set_hostname,
+    populate_hosts            = var.populate_hosts
   })
 }
 
 module "sg" {
   source                   = "terraform-aws-modules/security-group/aws"
-  version                  = "3.0.1"
+  version                  = "3.2.0"
   name                     = "${local.prefix}-security-group"
   description              = "security group ${local.prefix}"
   vpc_id                   = var.vpc_id
@@ -47,7 +53,7 @@ data "aws_ami" "server_image" {
 
 module "server" {
   source                      = "terraform-aws-modules/ec2-instance/aws"
-  version                     = "2.0.0"
+  version                     = "2.8.0"
   name                        = "${local.prefix}-${var.instance_name}"
   instance_count              = var.server_count
   ami                         = data.aws_ami.server_image.id
@@ -57,6 +63,7 @@ module "server" {
   monitoring                  = false
   vpc_security_group_ids      = ["${module.sg.this_security_group_id}"]
   subnet_ids                  = var.subnets
+  get_password_data           = var.get_password_data
   root_block_device = [{
     volume_type = "gp2"
     volume_size = var.server_root_disk_size
@@ -74,8 +81,19 @@ resource "random_string" "guacamole_access_password" {
 # into the created vms
 
 locals {
-  sec_type = var.user_private_key == "" ? "password" : "private-key"
-  sec_value = local.sec_type == "password" ? var.user_pass : file(var.user_private_key)
+  user_private_keys = var.user_private_key != "" ? [ for i in range(var.server_count) : var.user_private_key ] : []
+  user_passes = var.get_password_data == true ? [ for i in range(var.server_count) : rsadecrypt(module.server.password_data[i], file(var.user_private_key))] : [ for i in range(var.server_count) : var.user_pass ]
+  sec_type = var.user_private_key != "" ? var.get_password_data == true ? "password" : var.system_type == "windows" ? "password" : "private-key" : "password"
+  sec_value = local.sec_type == "password" ? [ for i in range(var.server_count) :  local.user_passes[i] ] : [ for i in range(var.server_count) : file(var.user_private_key) ]
+
+#  sec_type = var.user_private_key == "" ? "password" : "private-key"
+#  sec_value = local.sec_type == "password" ? var.user_pass : file(var.user_private_key)
+
+  output_hostnames = [
+    for ip in module.server.private_ip :
+      "${local.hostname}-${replace(ip, ".", "-")}"
+  ]
+
   win_connections = [
     for ip in module.server.public_ip :
     { 
@@ -87,7 +105,7 @@ locals {
         "hostname"          = module.server.private_ip[index(module.server.public_ip, ip)],
         "port"              = 3389,
         "username"          = var.user_name,
-        "${local.sec_type}" = local.sec_value
+        "${local.sec_type}" = local.sec_value[index(module.server.public_ip, ip)]
       }
     }
   ]
@@ -101,7 +119,7 @@ locals {
         "hostname"          = module.server.private_ip[index(module.server.public_ip, ip)],
         "port"              = 22,
         "username"          = var.user_name,
-        "${local.sec_type}" = local.sec_value
+        "${local.sec_type}" = local.sec_value[index(module.server.public_ip, ip)]
       }
     }
   ]
