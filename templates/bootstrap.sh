@@ -194,8 +194,7 @@ function update_path {
     [string] $path_entry
   )
   $newpath = "$env:Path;$path_entry"
-  $oldpath = '$env:Path ='
-  Write-Output "$oldpath '$newpath'" | Out-File -FilePath 'C:\Users\${user_name}\Documents\WindowsPowerShell\profile.ps1'
+  [System.Environment]::SetEnvironmentVariable('PATH',$newpath,[System.EnvironmentVariableTarget]::User)
 }
 
 %{ if install_workstation_tools }
