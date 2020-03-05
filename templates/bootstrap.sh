@@ -136,6 +136,8 @@ if ! grep "$(hostname -I) $(hostname)" /etc/hosts; then
 fi
 %{ endif }
 
+touch /tmp/bootstrapped.lock
+
 %{ endif }
 %{ if system_type == "windows" }
 Set-MpPreference -DisableRealtimeMonitoring $true
@@ -277,6 +279,8 @@ Remove-Item C:\wsl_setup.ps1
 %{ endif }
 
 Set-MpPreference -DisableRealtimeMonitoring $false
+# writing lock file
+echo $null >> "C:\\TEMP\\bootstrapped.lock"
 Stop-Transcript
 </powershell>
 %{ endif }
