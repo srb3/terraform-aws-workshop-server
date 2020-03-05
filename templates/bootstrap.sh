@@ -150,6 +150,9 @@ net user ${user_name} '${user_pass}' /add /y
 net localgroup administrators ${user_name} /add
 %{ endif }
 
+$Logfile = $MyInvocation.MyCommand.Path -replace '\.ps1$', '.log'
+Start-Transcript -Path $Logfile
+
 winrm quickconfig -q
 winrm set winrm/config/winrs '@{MaxMemoryPerShellMB="1024"}'
 winrm set winrm/config '@{MaxTimeoutms="1800000"}'
@@ -274,5 +277,6 @@ Remove-Item C:\wsl_setup.ps1
 %{ endif }
 
 Set-MpPreference -DisableRealtimeMonitoring $false
+Stop-Transcript
 </powershell>
 %{ endif }
