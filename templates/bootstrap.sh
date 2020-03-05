@@ -201,9 +201,9 @@ function update_path {
 install_choco
 choco install git -y
 choco install googlechrome -y
-update_path '${env:ProgramFiles(x86)}\Google\Chrome\Application'
+update_path '$${env:ProgramFiles(x86)}\Google\Chrome\Application'
 choco install vscode -y
-update_path '${env:ProgramFiles}\Microsoft VS Code'
+update_path '$${env:ProgramFiles}\Microsoft VS Code'
 %{ endif }
 
 %{ if workstation_hab }
