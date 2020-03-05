@@ -245,6 +245,34 @@ $dtp = [Environment]::GetFolderPath("CommonDesktopDirectory")
 Set-Content -Path $dtp\\${k.name} -Value $helper_file
 %{ endfor}
 
+%{ if kb_uk }
+Set-WinUserLanguageList -LanguageList en-GB -Force
+%{ endif }
+
+%{ if wsl }
+if ((Get-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsystem-Linux').State -ne 'Enabled') {
+  $ProgressPreference = 'SilentlyContinue'
+  cd C:\
+  Push-Location $(Get-Location)
+  Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
+  Invoke-WebRequest -Uri  https://aka.ms/wsl-ubuntu-1804 -OutFile Ubuntu.appx -UseBasicParsing
+  Rename-Item ./Ubuntu.appx ./Ubuntu.zip
+  Expand-Archive ./Ubuntu.zip ./Ubuntu
+  Remove-Item ./Ubuntu.zip
+  Push-Location .\Ubuntu\
+  $file_exe=$(Get-ChildItem .\ubuntu1804.exe -Recurse | % { $_.FullName })
+  $wsl = @"
+$file_exe install --root
+Unregister-ScheduledJob WSLsetup
+Remove-Item C:\wsl_setup.ps1
+"@
+  Set-Content -Path C:\wsl_setup.ps1 -Value $wsl
+  Register-ScheduledJob –Name WSLsetup –FilePath C:\wsl_setup.ps1 -ScheduledJobOption (New-ScheduledJobOption –DoNotAllowDemandStart)  -Trigger (New-JobTrigger –AtStartup)
+  Pop-Location
+}
+
+%{ endif }
+
 Set-MpPreference -DisableRealtimeMonitoring $false
 </powershell>
 %{ endif }

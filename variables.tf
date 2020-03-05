@@ -187,6 +187,18 @@ variable "ip_hostname" {
   default     = true
 }
 
+variable "wsl" {
+  description = "Should we enable windows subsystem for linux, requires reboot"
+  type        = bool
+  default     = false
+}
+
+variable "kb_uk" {
+  description = "Shoul we switch to a uk keyboard"
+  type        = bool
+  default     = false
+}
+
 ########### vpc settings #########################
 
 variable "vpc_id" {

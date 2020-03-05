@@ -25,7 +25,9 @@ locals {
     helper_files              = var.helper_files,
     ip_hostname               = var.ip_hostname,
     set_hostname              = var.set_hostname,
-    populate_hosts            = var.populate_hosts
+    populate_hosts            = var.populate_hosts,
+    wsl                       = var.wsl,
+    kb_uk                     = var.kb_uk
   })
 }
 
