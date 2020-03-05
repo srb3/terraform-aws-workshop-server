@@ -194,16 +194,16 @@ function update_path {
     [string] $path_entry
   )
   $newpath = "$env:Path;$path_entry"
-  [System.Environment]::SetEnvironmentVariable('PATH',$newpath,[System.EnvironmentVariableTarget]::User)
+  [System.Environment]::SetEnvironmentVariable('Path',$newpath,[System.EnvironmentVariableTarget]::User)
 }
 
 %{ if install_workstation_tools }
 install_choco
 choco install git -y
 choco install googlechrome -y
-update_path 'C:\Program Files (x86)\Google\Chrome\Application\'
+update_path '${env:ProgramFiles(x86)}\Google\Chrome\Application'
 choco install vscode -y
-update_path 'C:\Program Files\Microsoft VS Code\'
+update_path '${env:ProgramFiles}\Microsoft VS Code'
 %{ endif }
 
 %{ if workstation_hab }
