@@ -136,7 +136,7 @@ if ! grep "$(hostname -I) $(hostname)" /etc/hosts; then
 fi
 %{ endif }
 
-touch /tmp/setup.lock
+(umask 002; touch /setup.lock)
 
 %{ endif }
 %{ if system_type == "windows" }
@@ -279,7 +279,12 @@ Remove-Item C:\wsl_setup.ps1
 
 Set-MpPreference -DisableRealtimeMonitoring $false
 # writing lock file
-echo $null >> "C:\setup.lock"
+
+$loc = @"
+lock created: $(Get-Date)
+"@
+
+Set-Content -Path C:\setup.lock -Value $loc
 Stop-Transcript
 </powershell>
 %{ endif }
