@@ -365,10 +365,9 @@ install_hab
 
   sc C:\wsl_workstation_bash.sh ([byte[]][char[]] "$wsl_workstation_bash") -Encoding Byte
 
-  $wsl = @"
+  $wsl = @'
 Start-Transcript -Path C:\wsl_job.log
 C:\Ubuntu\ubuntu1804.exe install --root
-Unregister-ScheduledJob WSLsetup
 
 C:\Ubuntu\ubuntu1804.exe run "apt-get update && apt-get install dos2unix -y"
 C:\Ubuntu\ubuntu1804.exe run "dos2unix -n /mnt/c/wsl_user_bash.sh /mnt/c/wsl_user_bash.sh"
@@ -380,11 +379,17 @@ C:\Ubuntu\ubuntu1804.exe run "bash /mnt/c/wsl_workstation_bash.sh"
 C:\Ubuntu\ubuntu1804.exe config --default-user chef
 
 Set-Content -Path C:\wsl_setup.lock -Value "$(Get-Date)"
+Unregister-ScheduledTask -TaskName WSL_Setup -Confirm:$false
 Stop-Transcript
-"@
+'@
 
   Set-Content -Path C:\wsl_setup.ps1 -Value $wsl
-  Register-ScheduledJob -Name WSLsetup -FilePath C:\wsl_setup.ps1 -ScheduledJobOption (New-ScheduledJobOption -DoNotAllowDemandStart)  -Trigger (New-JobTrigger -AtStartup)
+  $Trigger = New-ScheduledTaskTrigger -AtStartup
+  $User = "$env:USERDOMAIN\${user_name}"
+  $Password = '${user_pass}'
+
+  $Action = New-ScheduledTaskAction -Execute "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument '-ExecutionPolicy Unrestricted -File "C:\wsl_setup.ps1"'
+  Register-ScheduledTask -TaskName "WSL_Setup" -Trigger $Trigger -User $User -Password $Password -Action $Action -RunLevel Highest -Force
   Pop-Location
 }
 %{ endif }
