@@ -262,7 +262,8 @@ if ((Get-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsyste
   curl.exe -L -o C:\ubuntu-1804.appx https://aka.ms/wsl-ubuntu-1804
   Rename-Item C:\ubuntu-1804.appx C:\Ubuntu.zip
   Expand-Archive C:\Ubuntu.zip
-$wsl_user_bash = @"
+
+  $wsl_user_bash = @"
 #!/bin/bash -x
 exec > /tmp/wsl_user_script.log 2>&1
 
@@ -273,7 +274,7 @@ printf >"/etc/sudoers.d/${user_name}" '%s    ALL= NOPASSWD: ALL\n' "${user_name}
 chmod 644 /etc/sudoers.d/${user_name}
 "@
 
-Set-Content -Path C:\wsl_user_bash.sh -Value $wsl_user_bash
+  Set-Content -Path C:\wsl_user_bash.sh -Value $wsl_user_bash
 
 $wsl_workstation_bash = @"
 #!/bin/bash -x
@@ -365,9 +366,9 @@ install_chef
 install_hab
 "@
 
-Set-Content -Path C:\wsl_workstation_bash.sh -Value $wsl_workstation_bash
+  Set-Content -Path C:\wsl_workstation_bash.sh -Value $wsl_workstation_bash
 
-$wsl = @"
+  $wsl = @"
 Start-Transcript -Path C:\wsl_job.log
 C:\Ubuntu\ubuntu1804.exe install --root
 Unregister-ScheduledJob WSLsetup
@@ -385,9 +386,10 @@ Set-Content -Path C:\wsl_setup.lock -Value "$(Get-Date)"
 Stop-Transcript
 "@
 
-Set-Content -Path C:\wsl_setup.ps1 -Value $wsl
-Register-ScheduledJob -Name WSLsetup -FilePath C:\wsl_setup.ps1 -ScheduledJobOption (New-ScheduledJobOption -DoNotAllowDemandStart)  -Trigger (New-JobTrigger -AtStartup)
-Pop-Location
+  Set-Content -Path C:\wsl_setup.ps1 -Value $wsl
+  Register-ScheduledJob -Name WSLsetup -FilePath C:\wsl_setup.ps1 -ScheduledJobOption (New-ScheduledJobOption -DoNotAllowDemandStart)  -Trigger (New-JobTrigger -AtStartup)
+  Pop-Location
+}
 %{ endif }
 
 Set-MpPreference -DisableRealtimeMonitoring $false
