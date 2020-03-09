@@ -259,22 +259,146 @@ if ((Get-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsyste
   cd C:\
   Push-Location $(Get-Location)
   Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
-  Invoke-WebRequest -Uri  https://aka.ms/wsl-ubuntu-1804 -OutFile Ubuntu.appx -UseBasicParsing
-  Rename-Item ./Ubuntu.appx ./Ubuntu.zip
-  Expand-Archive ./Ubuntu.zip ./Ubuntu
-  Remove-Item ./Ubuntu.zip
-  Push-Location .\Ubuntu\
-  $file_exe=$(Get-ChildItem .\ubuntu1804.exe -Recurse | % { $_.FullName })
-  $wsl = @"
-$file_exe install --root
-Unregister-ScheduledJob WSLsetup
-Remove-Item C:\wsl_setup.ps1
+$wsl_user_bash = @"
+#!/bin/bash -x
+exec > /tmp/wsl_user_script.log 2>&1
+
+useradd -m -s /bin/bash ${user_name}
+echo -e "${user_pass}\n${user_pass}" | passwd ${user_name}
+usermod -a -G sudo ${user_name}
+printf >"/etc/sudoers.d/${user_name}" '%s    ALL= NOPASSWD: ALL\n' "${user_name}"
+chmod 644 /etc/sudoers.d/${user_name}
 "@
-  Set-Content -Path C:\wsl_setup.ps1 -Value $wsl
-  Register-ScheduledJob –Name WSLsetup –FilePath C:\wsl_setup.ps1 -ScheduledJobOption (New-ScheduledJobOption –DoNotAllowDemandStart)  -Trigger (New-JobTrigger –AtStartup)
-  Pop-Location
+
+Set-Content -Path C:\wsl_user_bash.sh -Value $wsl_user_bash
+
+$wsl_workstation_bash = @"
+#!/bin/bash -x
+
+exec > /tmp/wsl_workstation_script.log 2>&1
+
+function set_tmp_path() {
+  if [[ ! -d ${tmp_path} ]]; then
+    mkdir -p ${tmp_path}
+fi
 }
 
+function install_chef() {
+  if ! hash curl; then
+    wget -O ${tmp_path}/install.sh ${chef_product_install_url}
+  else
+    curl -L -o ${tmp_path}/install.sh ${chef_product_install_url}
+fi
+  bash ${tmp_path}/install.sh -P ${chef_product_name} -v ${chef_product_version}
+  echo "export PATH=\"/opt/chef-workstation/bin:/opt/chef-workstation/embedded/bin:/opt/chef-workstation/gitbin:£PATH\"" >> /root/.bashrc
+  echo "export PATH=\"/opt/chef-workstation/bin:/opt/chef-workstation/embedded/bin:/opt/chef-workstation/gitbin:£PATH\"" >> /home/${user_name}/.bashrc
+  sed -i 's/£/$' /root/.bashrc
+  sed -i 's/£/$' /home/${user_name}/.bashrc
+}
+
+function install_hab() {
+  if ! hash curl; then
+    wget -O ${tmp_path}/install_hab.sh ${hab_install_url}
+  else
+    curl -L -o ${tmp_path}/install_hab.sh ${hab_install_url}
+  fi
+  if [[ "${hab_version}" == "latest" ]]; then
+    bash ${tmp_path}/install_hab.sh
+  else
+    bash ${tmp_path}/install_hab.sh -v \${hab_version}
+  fi
+  hab license accept
+  sudo su - ${user_name} -c 'hab license accept'
+}
+
+if hash yum &>/dev/null; then
+  yum install -y vim git tmux
+elif hash apt &>/dev/null; then
+  apt get install -y vim git tmux
+elif hash zypper &>/dev/null; then
+  zypper install -y vim
+fi
+
+cat << EOF >~/.vimrc
+set backspace=indent,eol,start
+syntax on
+set expandtab
+set tabstop=2
+set shiftwidth=2
+set foldmethod=syntax
+set nofoldenable
+set noincsearch
+nnoremap <silent> <C-l> :nohl<CR><C-l>
+colorscheme koehler
+noremap <Up> <NOP>
+noremap <Down> <NOP>
+noremap <Left> <NOP>
+noremap <Right> <NOP>
+imap 
+c>
+vmap ff <Esc>
+EOF
+
+cat << EOF >~/.tmux.conf
+unbind C-b
+set -g prefix C-s
+setw -g mode-keys vi
+set-window-option -g allow-rename off
+set -g status-bg colour201
+set -g status-fg black
+set -g default-terminal "screen-256color"
+# disable sound bell
+set -g bell-action none
+# disable visual bell
+set -g visual-bell off
+EOF
+
+echo "alias cw=\"cd /mnt/c/Users/*/Desktop/workspace/\"" >> /home/${user_name}/.bashrc
+
+cat << "EOF" >> /home/${user_name}/.bashrc
+function knife() {
+    /opt/chef-workstation/embedded/bin/knife $@ -c /mnt/c/Users/*/Desktop/workspace/chef-repo/.chef/knife.rb
+  }
+EOF
+
+set_tmp_path
+install_chef
+install_hab
+
+"@
+
+Set-Content -Path C:\wsl_workstation_bash.sh -Value $wsl_workstation_bash
+
+$wsl = @"
+Start-Transcript -Path C:\wsl_job.log
+curl.exe -L -o C:\ubuntu-1804.appx https://aka.ms/wsl-ubuntu-1804
+Rename-Item C:\ubuntu-1804.appx C:\Ubuntu.zip
+Expand-Archive C:\Ubuntu.zip
+
+C:\Ubuntu\ubuntu1804.exe install --root
+Unregister-ScheduledJob WSLsetup
+Remove-Item C:\wsl_setup.ps1
+
+Copy-Item C:\\wsl_user_bash.sh C:\\Ubuntu\\rootfs\\tmp\\wsl_user_bash.sh
+Copy-Item C:\\wsl_workstation_bash.sh C:\\Ubuntu\\rootfs\\tmp\\wsl_workstation_bash.sh
+Remove-Item C:\wsl_user_bash.sh
+Remove-Item C:\wsl_workstation_bash.sh
+
+C:\Ubuntu\ubuntu1804.exe run "bash /tmp/wsl_user_bash.sh"
+C:\Ubuntu\ubuntu1804.exe run "bash /tmp/wsl_workstation_bash.sh"
+C:\Ubuntu\ubuntu1804.exe config --default-user chef
+$loc_wsl = @"
+lock created: $(Get-Date)
+"@
+
+Set-Content -Path C:\wsl_setup.lock -Value $loc_wsl
+
+Stop-Transcript
+"@
+
+Set-Content -Path C:\wsl_setup.ps1 -Value $wsl
+Register-ScheduledJob -Name WSLsetup -FilePath C:\wsl_setup.ps1 -ScheduledJobOption (New-ScheduledJobOption -DoNotAllowDemandStart)  -Trigger (New-JobTrigger -AtStartup)
+Pop-Location
 %{ endif }
 
 Set-MpPreference -DisableRealtimeMonitoring $false
