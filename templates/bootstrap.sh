@@ -274,7 +274,7 @@ printf >"/etc/sudoers.d/${user_name}" '%s    ALL= NOPASSWD: ALL\n' "${user_name}
 chmod 644 /etc/sudoers.d/${user_name}
 "@
 
-  Set-Content -Path C:\wsl_user_bash.sh -Value $wsl_user_bash
+  sc C:\wsl_user_bash.sh ([byte[]][char[]] "$wsl_user_bash") -Encoding Byte
 
 $wsl_workstation_bash = @"
 #!/bin/bash -x
@@ -314,7 +314,7 @@ function install_hab() {
 if hash yum &>/dev/null; then
   yum install -y vim git tmux
 elif hash apt &>/dev/null; then
-  apt get install -y vim git tmux
+  apt-get install -y vim git tmux
 elif hash zypper &>/dev/null; then
   zypper install -y vim
 fi
@@ -334,8 +334,7 @@ noremap <Up> <NOP>
 noremap <Down> <NOP>
 noremap <Left> <NOP>
 noremap <Right> <NOP>
-imap 
-c>
+imap jk <Esc>
 vmap ff <Esc>
 EOF
 
@@ -347,9 +346,7 @@ set-window-option -g allow-rename off
 set -g status-bg colour201
 set -g status-fg black
 set -g default-terminal "screen-256color"
-# disable sound bell
 set -g bell-action none
-# disable visual bell
 set -g visual-bell off
 EOF
 
@@ -366,22 +363,22 @@ install_chef
 install_hab
 "@
 
-  Set-Content -Path C:\wsl_workstation_bash.sh -Value $wsl_workstation_bash
+  sc C:\wsl_workstation_bash.sh ([byte[]][char[]] "$wsl_workstation_bash") -Encoding Byte
 
   $wsl = @"
 Start-Transcript -Path C:\wsl_job.log
 C:\Ubuntu\ubuntu1804.exe install --root
 Unregister-ScheduledJob WSLsetup
-Remove-Item C:\wsl_setup.ps1
 
-Copy-Item C:\\wsl_user_bash.sh C:\\Ubuntu\\rootfs\\tmp\\wsl_user_bash.sh
-Copy-Item C:\\wsl_workstation_bash.sh C:\\Ubuntu\\rootfs\\tmp\\wsl_workstation_bash.sh
-Remove-Item C:\wsl_user_bash.sh
-Remove-Item C:\wsl_workstation_bash.sh
+C:\Ubuntu\ubuntu1804.exe run "apt-get update && apt-get install dos2unix -y"
+C:\Ubuntu\ubuntu1804.exe run "dos2unix -n /mnt/c/wsl_user_bash.sh /mnt/c/wsl_user_bash.sh"
+C:\Ubuntu\ubuntu1804.exe run "dos2unix -n /mnt/c/wsl_workstation_bash.sh /mnt/c/wsl_workstation_bash.sh"
 
-C:\Ubuntu\ubuntu1804.exe run "bash /tmp/wsl_user_bash.sh"
-C:\Ubuntu\ubuntu1804.exe run "bash /tmp/wsl_workstation_bash.sh"
+C:\Ubuntu\ubuntu1804.exe run "bash /mnt/c/wsl_user_bash.sh"
+C:\Ubuntu\ubuntu1804.exe run "bash /mnt/c/wsl_workstation_bash.sh"
+
 C:\Ubuntu\ubuntu1804.exe config --default-user chef
+
 Set-Content -Path C:\wsl_setup.lock -Value "$(Get-Date)"
 Stop-Transcript
 "@
