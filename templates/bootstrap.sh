@@ -259,6 +259,9 @@ if ((Get-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsyste
   cd C:\
   Push-Location $(Get-Location)
   Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart
+  curl.exe -L -o C:\ubuntu-1804.appx https://aka.ms/wsl-ubuntu-1804
+  Rename-Item C:\ubuntu-1804.appx C:\Ubuntu.zip
+  Expand-Archive C:\Ubuntu.zip
 $wsl_user_bash = @"
 #!/bin/bash -x
 exec > /tmp/wsl_user_script.log 2>&1
@@ -290,10 +293,6 @@ function install_chef() {
     curl -L -o ${tmp_path}/install.sh ${chef_product_install_url}
 fi
   bash ${tmp_path}/install.sh -P ${chef_product_name} -v ${chef_product_version}
-  echo "export PATH=\"/opt/chef-workstation/bin:/opt/chef-workstation/embedded/bin:/opt/chef-workstation/gitbin:£PATH\"" >> /root/.bashrc
-  echo "export PATH=\"/opt/chef-workstation/bin:/opt/chef-workstation/embedded/bin:/opt/chef-workstation/gitbin:£PATH\"" >> /home/${user_name}/.bashrc
-  sed -i 's/£/$' /root/.bashrc
-  sed -i 's/£/$' /home/${user_name}/.bashrc
 }
 
 function install_hab() {
@@ -319,7 +318,7 @@ elif hash zypper &>/dev/null; then
   zypper install -y vim
 fi
 
-cat << EOF >~/.vimrc
+cat << EOF > /home/${user_name}/.vimrc
 set backspace=indent,eol,start
 syntax on
 set expandtab
@@ -339,7 +338,7 @@ c>
 vmap ff <Esc>
 EOF
 
-cat << EOF >~/.tmux.conf
+cat << EOF > /home/${user_name}/.tmux.conf
 unbind C-b
 set -g prefix C-s
 setw -g mode-keys vi
@@ -364,17 +363,12 @@ EOF
 set_tmp_path
 install_chef
 install_hab
-
 "@
 
 Set-Content -Path C:\wsl_workstation_bash.sh -Value $wsl_workstation_bash
 
 $wsl = @"
 Start-Transcript -Path C:\wsl_job.log
-curl.exe -L -o C:\ubuntu-1804.appx https://aka.ms/wsl-ubuntu-1804
-Rename-Item C:\ubuntu-1804.appx C:\Ubuntu.zip
-Expand-Archive C:\Ubuntu.zip
-
 C:\Ubuntu\ubuntu1804.exe install --root
 Unregister-ScheduledJob WSLsetup
 Remove-Item C:\wsl_setup.ps1
@@ -387,12 +381,7 @@ Remove-Item C:\wsl_workstation_bash.sh
 C:\Ubuntu\ubuntu1804.exe run "bash /tmp/wsl_user_bash.sh"
 C:\Ubuntu\ubuntu1804.exe run "bash /tmp/wsl_workstation_bash.sh"
 C:\Ubuntu\ubuntu1804.exe config --default-user chef
-$loc_wsl = @"
-lock created: $(Get-Date)
-"@
-
-Set-Content -Path C:\wsl_setup.lock -Value $loc_wsl
-
+Set-Content -Path C:\wsl_setup.lock -Value "$(Get-Date)"
 Stop-Transcript
 "@
 
