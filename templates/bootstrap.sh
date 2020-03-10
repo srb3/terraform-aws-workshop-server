@@ -305,7 +305,7 @@ function install_hab() {
   if [[ "${hab_version}" == "latest" ]]; then
     bash ${tmp_path}/install_hab.sh
   else
-    bash ${tmp_path}/install_hab.sh -v \${hab_version}
+    bash ${tmp_path}/install_hab.sh -v ${hab_version}
   fi
   hab license accept
   sudo su - ${user_name} -c 'hab license accept'
@@ -350,14 +350,6 @@ set -g bell-action none
 set -g visual-bell off
 EOF
 
-echo "alias cw=\"cd /mnt/c/Users/*/Desktop/workspace/\"" >> /home/${user_name}/.bashrc
-
-cat << "EOF" >> /home/${user_name}/.bashrc
-function knife() {
-    /opt/chef-workstation/embedded/bin/knife $@ -c /mnt/c/Users/*/Desktop/workspace/chef-repo/.chef/knife.rb
-  }
-EOF
-
 set_tmp_path
 install_chef
 install_hab
@@ -376,7 +368,7 @@ C:\Ubuntu\ubuntu1804.exe run "dos2unix -n /mnt/c/wsl_workstation_bash.sh /mnt/c/
 C:\Ubuntu\ubuntu1804.exe run "bash /mnt/c/wsl_user_bash.sh"
 C:\Ubuntu\ubuntu1804.exe run "bash /mnt/c/wsl_workstation_bash.sh"
 
-C:\Ubuntu\ubuntu1804.exe config --default-user chef
+C:\Ubuntu\ubuntu1804.exe config --default-user ${user_name}
 
 Set-Content -Path C:\wsl_setup.lock -Value "$(Get-Date)"
 Unregister-ScheduledTask -TaskName WSL_Setup -Confirm:$false
