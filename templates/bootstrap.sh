@@ -314,7 +314,7 @@ function install_hab() {
 if hash yum &>/dev/null; then
   yum install -y vim git tmux
 elif hash apt &>/dev/null; then
-  apt-get install -y vim git tmux
+  apt-get install -y vim git tmux jq
 elif hash zypper &>/dev/null; then
   zypper install -y vim
 fi
