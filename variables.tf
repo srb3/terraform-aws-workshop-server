@@ -153,6 +153,12 @@ variable "server_instance_type" {
   default     = "t2.medium"
 }
 
+variable "public_ip" {
+  description = "Should we give the instace a public ip"
+  type        = bool
+  default     = true
+}
+
 variable "server_root_disk_size" {
   description = "The size in GB of the root disk"
   type        = number

@@ -60,7 +60,7 @@ module "server" {
   instance_count              = var.server_count
   ami                         = data.aws_ami.server_image.id
   instance_type               = var.server_instance_type
-  associate_public_ip_address = true
+  associate_public_ip_address = var.public_ip
   key_name                    = var.key_name
   monitoring                  = false
   vpc_security_group_ids      = ["${module.sg.this_security_group_id}"]
