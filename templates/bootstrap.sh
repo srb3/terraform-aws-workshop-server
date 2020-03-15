@@ -276,100 +276,14 @@ chmod 644 /etc/sudoers.d/${user_name}
 
   sc C:\wsl_user_bash.sh ([byte[]][char[]] "$wsl_user_bash") -Encoding Byte
 
-$wsl_workstation_bash = @"
-#!/bin/bash -x
-
-exec > /tmp/wsl_workstation_script.log 2>&1
-
-function set_tmp_path() {
-  if [[ ! -d ${tmp_path} ]]; then
-    mkdir -p ${tmp_path}
-fi
-}
-
-function install_chef() {
-  if ! hash curl; then
-    wget -O ${tmp_path}/install.sh ${chef_product_install_url}
-  else
-    curl -L -o ${tmp_path}/install.sh ${chef_product_install_url}
-fi
-  bash ${tmp_path}/install.sh -P ${chef_product_name} -v ${chef_product_version}
-}
-
-function install_hab() {
-  if ! hash curl; then
-    wget -O ${tmp_path}/install_hab.sh ${hab_install_url}
-  else
-    curl -L -o ${tmp_path}/install_hab.sh ${hab_install_url}
-  fi
-  if [[ "${hab_version}" == "latest" ]]; then
-    bash ${tmp_path}/install_hab.sh
-  else
-    bash ${tmp_path}/install_hab.sh -v ${hab_version}
-  fi
-  hab license accept
-  sudo su - ${user_name} -c 'hab license accept'
-}
-
-if hash yum &>/dev/null; then
-  yum install -y vim git tmux
-elif hash apt &>/dev/null; then
-  apt-get install -y vim git tmux jq
-elif hash zypper &>/dev/null; then
-  zypper install -y vim
-fi
-
-cat << EOF > /home/${user_name}/.vimrc
-set backspace=indent,eol,start
-syntax on
-set expandtab
-set tabstop=2
-set shiftwidth=2
-set foldmethod=syntax
-set nofoldenable
-set noincsearch
-nnoremap <silent> <C-l> :nohl<CR><C-l>
-colorscheme koehler
-noremap <Up> <NOP>
-noremap <Down> <NOP>
-noremap <Left> <NOP>
-noremap <Right> <NOP>
-imap jk <Esc>
-vmap ff <Esc>
-if has("autocmd")
-  au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
-endif
-EOF
-
-cat << EOF > /home/${user_name}/.tmux.conf
-unbind C-b
-set -g prefix C-s
-setw -g mode-keys vi
-set-window-option -g allow-rename off
-set -g status-bg colour201
-set -g status-fg black
-set -g default-terminal "screen-256color"
-set -g bell-action none
-set -g visual-bell off
-EOF
-
-set_tmp_path
-install_chef
-install_hab
-"@
-
-  sc C:\wsl_workstation_bash.sh ([byte[]][char[]] "$wsl_workstation_bash") -Encoding Byte
-
   $wsl = @'
 Start-Transcript -Path C:\wsl_job.log
 C:\Ubuntu\ubuntu1804.exe install --root
 
 C:\Ubuntu\ubuntu1804.exe run "apt-get update && apt-get install dos2unix -y"
 C:\Ubuntu\ubuntu1804.exe run "dos2unix -n /mnt/c/wsl_user_bash.sh /mnt/c/wsl_user_bash.sh"
-C:\Ubuntu\ubuntu1804.exe run "dos2unix -n /mnt/c/wsl_workstation_bash.sh /mnt/c/wsl_workstation_bash.sh"
 
 C:\Ubuntu\ubuntu1804.exe run "bash /mnt/c/wsl_user_bash.sh"
-C:\Ubuntu\ubuntu1804.exe run "bash /mnt/c/wsl_workstation_bash.sh"
 
 C:\Ubuntu\ubuntu1804.exe config --default-user ${user_name}
 
