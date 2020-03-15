@@ -13,7 +13,7 @@ This module will create aws ec2 vms and security groups in a given vpc (vpc id p
 
 module "aws_instances_ceate" {
   source           = "devoptimist/workshop-server/aws"
-  version          = "0.0.1"
+  version          = "0.0.22"
   ips              = ["172.16.0.23"]
   instance_count   = 1
   user_name        = "jdoe"
